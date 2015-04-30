@@ -1,0 +1,6 @@
+include::vars.adoc[]
+:webfonts!:
+
+[[first]]
+== {title_2015_04_30_javascript_in_java_webapps}
+2015-04-30

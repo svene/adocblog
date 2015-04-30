@@ -1,5 +1,7 @@
+include::vars.adoc[]
+
 = Sven's Blog
 :Author: Sven Ehrke, @syendar
 
-include::first.adoc[]
-
+* link:./first.html[First]
+* link:./2015_04_30_javascript_in_java_webapps.html[{title_2015_04_30_javascript_in_java_webapps}]

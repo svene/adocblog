@@ -8,13 +8,14 @@ buildscript {
         classpath 'org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.6'
         classpath 'com.github.jruby-gradle:jruby-gradle-plugin:0.1.11'
         classpath 'com.github.ben-manes:gradle-versions-plugin:0.7'
-//        classpath 'com.bluepapa32:gradle-watch-plugin:0.1.4'
+        classpath 'com.bluepapa32:gradle-watch-plugin:0.1.5'
     }
 }
  
 apply plugin: 'org.asciidoctor.convert'
 apply plugin: 'com.github.jruby-gradle.base'
 apply plugin: 'com.github.ben-manes.versions'
+apply plugin: 'com.bluepapa32.watch'
 
 repositories {
     mavenLocal()
@@ -56,5 +57,12 @@ asciidoctor.doLast {
     copy {
         from "$outputDir/html5"
         into "html"
+    }
+}
+
+watch {
+   resources {
+        files fileTree(dir: 'src/docs/asciidoc', include: '**/*.adoc')
+        tasks 'asciidoctor'
     }
 }
