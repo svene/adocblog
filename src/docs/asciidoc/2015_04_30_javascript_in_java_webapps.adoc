@@ -1,6 +1,242 @@
 include::vars.adoc[]
-:webfonts!:
 
 [[first]]
 == {title_2015_04_30_javascript_in_java_webapps}
 2015-04-30
+
+Integrate Javascript into Java based Webapplications.
+
+Terms:
+
+* javascript libs:  3rd party javascript libraries like angularJS, jquery, ...
+* UI asset libs: mainly 3rd party css libraries like bootstrap etc.
+
+
+=== Runtime
+
+==== Start simple (from a Java developer point of view)
+
+Serve server functionality (e.g. REST-API, login.html) and client functionality (html, own javascript files) from the same server.
+For the client functionality this can be achieved with the following options:
+
+===== Serve 3rd party libs from CDN.
+
+----
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+----
+
+[.lead]
+Advantages:
+
+* Simple
+
+[.lead]
+Disadvantages:
+
+* Requires access to internet. Some companies have quite restrictive rules for internet access for security reasons.
+If you are developing an application for internet users this is a problem during development time.
+For an intranet application this is also a problem for your users at runtime.
+* Your application is dependent on a third party service (the CDN) at runtime. If it has a problem your application has a problem as well.
+
+NOTE: does not cause any CORS issues since the libraries are acquired through the '<script>' element.
+
+If the disadvantages are unacceptable for your application you need to serve the 3rd party libs from the same server as
+you serve your application.
+
+===== Serve 3rd party libs from your own server.
+
+You can simply download your 3rd party libs and *check them into your source repository* next to your own html, css, and javascript files.
+Then you are able to serve them from your applications server using a relative path for example:
+
+----
+<script src="libs/jquery/2.1.3/jquery.min.js"></script>
+----
+
+[TIP]
+====
+As in this example it is probably a good idea to somehow *include the version* of the 3rd party lib *in the URL* as we have seen it in the CDN example.
+Doing this has two advantages:
+
+* From the version in the foldername or the filename during development it is always clear which version you are using. This is especially important
+  when you need to update the version.
+* Browsers cache the 3rd party library.
+So if you do not use a version (e.g. `<script src="libs/query.min.js"></script>`) and want to update it the
+browser does not necessarily detect that the server uses a newer version. With the version included the reference would be
+`<script src="libs/jquery/2.2.0/jquery.min.js"></script>` for example and it is clear to the browser that it needs to fetch it.
+====
+
+[.lead]
+Advantages:
+
+* Quite Simple
+
+[.lead]
+Disadvantages:
+
+Means that you check in build *artifacts into the source repository*.
+Note that this is exactly the same behavior as many Java developers did before maven repositories did exist.
+It works but is not a very good idea. Why?
+Even with a checked in jar file it is not clear if it really is exactly the same as the one found on maven central.
+
+With javascript libraries it is even worse since very often they consist of more than one file. In the case of angularJS for example there are a lot.
+When you download them you need to pay attention that you really check in all of them and even then afterwards you cannot prevent that somebody by accident
+or on purpose makes a change to one of these files.
+
+When you updating the library it also makes sense to use a version number in the foldername you checked in the library.
+Otherwise it is probably best to first delete the old folder before copying in the new files.
+
+*So* let's see what options we have to serve 3rd party libraries from our server without having to check them in.
+
+===== Serve 3rd party libs via deployment folder.
+
+With this approach we will download the 3rd party libs during build time and copy them to a folder which is available
+to the application at runtime without checking them into the source control system.
+
+*Without access to the internet* you need to provide a place from where you can serve these artifacts. For this example
+we use the package manager tool `bower` which is quite common in the Javascript community. For our artifacts this means
+we need to setup our private bower repository. Also the commercial version of Artifactory is able to serve Javascript artifacts.
+
+* install bower: `npm install -g bower`
+* create a bower file to specifiy the javascript dependencies:
+
+[source,javascript]
+.bower.json
+----
+{
+  "name":  "MyProject",
+  "version": "0.0.1",
+  "dependencies": {
+    "jquery": "2.1.3"
+  }
+}
+----
+
+* invoke `bower install`
+
+The last command will download _jquery_'s artifacts via bower. The files we are insterested in are in the dist subfolder:
+
+.bower_components/jquery/dist
+----
+jquery.js
+jquery.min.js
+jquery.min.map
+----
+
+Since we explicitly do not want these artifact files to be checked into our source control make sure to vcs ignore them.
+For git this means:
+
+.gitignore
+----
+bower_component/
+----
+
+From your html file you can reference it like this:
+
+----
+<script src="bower_components/jquery/dist/jquery.js" type="text/javascript"></script>
+----
+
+Since this URL is not what you would like the browser to use your build script should include a copy step which would copy
+the file to `libs/jquery/2.1.3`. Also do not forget to add `libs` to your `.gitignore` file.
+
+
+====== Advantages:
+
+* No need to check in artifacts
+
+====== Disadvantages:
+
+* Without internet acdess a private bower repository needs to be setup. You could argue that you could simply download the artifacts,
+store them on a shared drive and copy them into your applications folder during build time. This works for simple dependencies but
+with many dependencies with transitive dependencies this is becoming very hard to handle.
+
+
+===== Serve 3rd party libs via webjars.
+
+
+//cdn.jsdelivr.net/webjars/org.webjars/jquery/2.1.0/jquery.js
+
+
+==== serve 3rd party libs from local folder
+
+Reasons:
+
+* independence from other servers
+
+Options:
+
+* check in 3rd party libs
+* only include in deployed version through:
+** webjars
+** node_modules
+** download at buildtime into folder of deployment
+
+
+Options with One Projectfolder:
+
+* 
+
+
+Options with separate projectfolders for client and server:
+
+
+=== Buildtime
+
+----
+// use grunt/gulp/builder for client side development ?
+boolean useClientSideBuildTools = true/false // CSBT
+
+// separate client side builds (e.g. call gulp from commandline)
+// from server side builds (e.g. call gradle from commandline) ?
+boolean separateClientAndServerBuild = true/false
+
+if (we_talk_about_using_a_3rd_party_library) {
+  if (useClientSideBuildTools) {
+    if (separateClientAndServerBuild) {
+      // - call grunt/gulp/builder
+    } else {
+      // - call client side builds from server side builds
+      //   (e.g. call gulp from gradle (see book and my simple JS example))
+      // - .gitignore `node_modules` folder
+  } else {
+    int mode = ...
+    switch(mode) {
+      case 1:
+        // check in 3rd party javascript libs into
+        // client module's project folder and serve from there
+      case 2:
+        // let client module's HTML pages reference 3rd party lib from 
+        // some foreign domain (e.g. some CDN or bintray) and serve from client-domain
+        // TODO: CORS
+      case 3:
+        // if client module implementation is based upon Servlet API 3
+        // use 3rd party lib's webjar and serve from there
+    }
+  }
+} else { // it's about our own lib
+  if (weDevelopAndTestOurLibAtTheSameTime) {
+
+  } else {
+
+  }
+}
+----
+
+
+= stuff
+
+* server-domain == client-domain
+* server-domain != client-domain
+* serve 3rd party js libs from googleapis: http://ajax.googleapis.com/ajax/libs/angularjs/1.0.3/angular.min.js -> https://developers.google.com/speed/libraries/
+** example: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+** served with CORS and Timing-Allow headers
+
+Handle e.g. Typescript
+* some.ts -tsc--> some.js -min--> some-min.js
+** at buildtime (grunt/gulp/...)
+** at development-runtime through asset-pipeline
+** at deploy-time through asset-pipeline
+** Is there a mixed mode option?: asset-pipeline at development time, 3rd party lib at prod-runtime?
+
+
+Changelog: TODO: link to github
