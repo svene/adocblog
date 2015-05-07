@@ -40,27 +40,94 @@ Sounds easy enough but it isn't.
 The URL which needs to be used depends on the environment the _client application_ runs in and the environment the User's browser runs in.
 And this also means that these environments determine how you need to provide your Javascript library.
 
+== Combinations
 
+//[cols="^,^,^,^", options="header"]
+|===
+//| Col1 | Col2 | Col 3 | Col 4
 
+.2+| | 3+^| Solution
+|  ^| CDN ^| internal CDN ^| from client app
 
-[cols="^,^,^", options="header"]
+.2+^.^| Browser | with Internet Access
+^| X ^| X ^| X
+
+a| NOTE: without Internet Access
+^|   ^| X ^| X
+
 |===
 
-| Browser
-| Client App
-| Solution
-
-| Internet Access: Y
-| ?
-| public CDN
-
-| Internet Access: N
-| ?
-| internal CDN
-|===
+=== B -> WIA -> CDN
 
 [.lead]
-Solutions
+Benefits
+
+You can simply include a script tag in your html and you're done:
+
+----
+<script
+  src="http://cdnjs.cloudflare.com/ajax/libs/mathjax/2.5.3/MathJax.js"
+  type="text/javascript"
+>
+</script>
+----
+
+[.lead]
+Price
+
+Your application will be *dependent on an external service*.
+If that one goes down of changes in an unexpected way your application is affected immediately.
+
+=== B -> WIA -> internal CDN
+
+[.lead]
+Benefits
+
+You can simply include a script tag in your html, pointing to an intenal URL and you're done:
+
+----
+<script
+  src="http://MYCOMPANY.com/ajax/libs/mathjax/2.5.3/MathJax.js"
+  type="text/javascript"
+>
+</script>
+----
+
+[.lead]
+Price
+
+* Your company or your project needs to have a CDN.
+This can be achieved for example by setting up  an apache server from where you serve the required files.
+* You need to maintain this server.
+For example the appropriate CORS settings need to be configured.
+* In addition the files it serves need to be maintained, updated etc.
+
+=== B -> WIA -> from client app
+
+[.lead]
+Benefits
+
+* You can simply include a script tag in your html, even using a relative URL and you're done:
+
+----
+<script src="libs/mathjax/2.5.3/MathJax.js" type="text/javascript"></script>
+----
+
+* No need for an additional system
+
+[.lead]
+Price
+
+You need to think about how the assets can be served from the internal app:
+
+* as file delivered from runtime root
+** bower
+** npm
+* as classpath resource (for JVM based server apps)
+** as webjar format (requires servlet api > 3.0 support)
+** servlet api < 3.0 support: with a resource serving servlet for example which maps URLs to classpath resources
+
+== Solutions
 
 
 Make it available via
@@ -425,6 +492,7 @@ if (we_talk_about_using_a_3rd_party_library) {
 ** example: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 ** served with CORS and Timing-Allow headers
 * bower depends on git
+* mention _Content-Security-Policy._
 
 Handle e.g. Typescript
 * some.ts -tsc--> some.js -min--> some-min.js
