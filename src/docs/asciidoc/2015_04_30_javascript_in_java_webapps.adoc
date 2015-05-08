@@ -119,6 +119,9 @@ a|
 
 |===
 
+The following sections describe the benefits and price for each combination. Depending on your requirements and environment you
+need to decide which combination makes most sense for your application.
+
 === B -> WIA -> CDN
 
 [.lead]
@@ -137,8 +140,12 @@ You can simply include a script tag in your html and you're done:
 [.lead]
 Price
 
-Your application will be *dependent on an external service*.
+* Your application will be *dependent on an external service*.
 If that one goes down or changes in an unexpected way your application is affected as well.
+
+* If your development environment has *no internet access* this approach does not work.
+What you could do is to use internal URLs for development and public URLs for your production environment.
+Your build/configuration process needs to take care of the switch.
 
 === B -> WIA -> internal CDN
 
@@ -158,13 +165,14 @@ You can simply include a script tag in your html, pointing to an intenal URL and
 [.lead]
 Price
 
-* Your company or your project needs to have a CDN.
+* Your company or your project needs to have a *company CDN* which is accessible from inside your company and from the internet.
 This can be achieved for example by setting up  an apache server from where you serve the required files.
-* You need to maintain this server.
-For example the appropriate CORS settings need to be configured.
-* In addition the files it serves need to be maintained, updated etc.
+** You need to maintain this server.
+For example it might be necessary to configure the appropriate http://en.wikipedia.org/wiki/Cross-origin_resource_sharing[CORS]
+and http://en.wikipedia.org/wiki/Content_Security_Policy[CSP] settings.
+** In addition the files it serves need to be maintained, updated etc.
 
-=== B -> WIA -> from client app
+=== B -> WIA -> from application
 
 [.lead]
 Benefits
@@ -175,12 +183,12 @@ Benefits
 <script src="libs/mathjax/2.5.3/MathJax.js" type="text/javascript"></script>
 ----
 
-* No need for an additional system
+* No need for an additional CDN
 
 [.lead]
 Price
 
-You need to think about how the assets can be served from the internal app.
+You need to think about how the assets can be served from the application.
 The options are:
 
 * as a *static file* served from your runtime root
