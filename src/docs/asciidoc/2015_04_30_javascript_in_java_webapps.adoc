@@ -122,7 +122,7 @@ a|
 The following sections describe the benefits and price for each combination. Depending on your requirements and environment you
 need to decide which combination makes most sense for your application.
 
-=== B -> WIA -> CDN
+=== Browser -> public CDN
 
 [.lead]
 Benefits
@@ -145,9 +145,9 @@ If that one goes down or changes in an unexpected way your application is affect
 
 * If your development environment has *no internet access* this approach does not work.
 What you could do is to use internal URLs for development and public URLs for your production environment.
-Your build/configuration process needs to take care of the switch.
+Your build/configuration tools need to take care of the switch.
 
-=== B -> WIA -> internal CDN
+=== Browser -> company CDN
 
 [.lead]
 Benefits
@@ -172,7 +172,7 @@ For example it might be necessary to configure the appropriate http://en.wikiped
 and http://en.wikipedia.org/wiki/Content_Security_Policy[CSP] settings.
 ** In addition the files it serves need to be maintained, updated etc.
 
-=== B -> WIA -> from application
+=== Browser -> Application
 
 [.lead]
 Benefits
@@ -191,16 +191,32 @@ Price
 You need to think about how the assets can be served from the application.
 The options are:
 
-* as a *static file* served from your runtime root
+* as *static files* served from your runtime root
 * as *classpath resource* (for JVM based server apps) available at runtime
 
 The following subsections describe the details about these options
 
 ==== Static Files
 
-* as file delivered from runtime root
-** bower
-** npm
+[.lead]
+Benefits
+
+[.lead]
+Price
+
+* You need to copy the web artifaccts at build time to your deployment folder
+* You need a place (artifact repository) as source from where you can copy the web artifacts
+* Without internet access at buildtime you need a company internal artifact repository for the web artifacts.
+To do this you have a couple of options:
+** Zip together all needed files (e.g. all angularjs files). Then you can either copy and unzip the zip file during the build process into
+the deployment folder.
+** Java build (gradle/maven):
+*** Or you could add the zip to your maven repository and reference it as normal dependency in the build process (TODO: show gradle example), TODO: webjar note.
+** Javascript build (bower/npm/grunt/gulp):
+*** The commercial version of Artifactory is able to serve Javascript artifacts: https://www.jfrog.com/confluence/display/RTF/Npm+Repositories.
+*** You can setup a https://www.npmjs.com/package/private-bower[private bower repository]
+or a https://www.google.ch/webhp?&ie=UTF-8#q=private+npm+repository[private npm repository] or both.
+
 
 ==== Classpath resources
 
