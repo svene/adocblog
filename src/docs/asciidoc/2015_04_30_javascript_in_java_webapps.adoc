@@ -1,5 +1,7 @@
 include::vars.adoc[]
 
+:sectnums:
+
 [[first]]
 == {title_2015_04_30_javascript_in_java_webapps}
 2015-04-30
@@ -40,20 +42,80 @@ Sounds easy enough but it isn't.
 The URL which needs to be used depends on the environment the _client application_ runs in and the environment the User's browser runs in.
 And this also means that these environments determine how you need to provide your Javascript library.
 
+=== No Internet Access
+
+Some companies have quite restrictive rules in regards to internet access.
+This main reason is security.
+And this makes the whole development process very difficult.
+Let's see how this situation can be handled.
+
+Of course it is usually not possible today to develop applications without using open source libraries and frameworks available from the internet.
+Therefore these companies usually have *dedicated people* allowed to do the downloads.
+They will then make the downloaded files available in the company's internal network.
+
+For *Java artifacts* this is usually done via a company's internal maven repository like Artifactory or Nexus.
+The dedicated person needs to download and import the artifacts.
+This will become tedious and errorprone especially with transitive dependencies.
+If you are lucky these repositories are allowed to access the internet and it is not necessary to do the download and import manually.
+Consumption of dependencies then works in the usual transparent way.
+
+For *web artifacts* you cannot use maven repositories (except when wrapped inside webjars, see below).
+Therefore you need to provide a place from where you can serve these artifacts.
+You can setup a https://www.npmjs.com/package/private-bower[private bower repository]
+or a https://www.google.ch/webhp?&ie=UTF-8#q=private+npm+repository[private npm repository] or both.
+
+[NOTE]
+====
+If you are developing an application for internet users you could take a shortcut what your web artifact runtime dependencies concerns.
+Accessing *web artifacts* from an internet location is not a problem for your future users because their browser has access to the internet.
+Otherwise it would not be able to access your application.
+But it comes with a certain price (see below)
+
+////
+But it is a problem during development and therefore also these runtime artifacts need to be made available internally.
+
+You consider as well that when your application is *dependent on a third party service* (the CDN) at runtime
+any problem with it causes a problem for your application. Depending 
+////
+====
+
+=== Build time vs. Run time
+
+Some artifacts are only needed at *runtime* others only at *buildtime*.
+
+.Examples
+|===
+h|               h| runtime              h| buildtime
+h| java artifact  | spring framework jar  | junit
+h| web artifact   | jquery                | gulp-uglify
+|===
+
+A Java artifact runtime dependency is for example the _spring framework jar_ which is used to operate your webapplication.
+
+A web artifact runtime dependency is for example _jquery_ or _angularJS_ defined in one of your application's html files
+which are requested by the browser.
+
+A Java artifact buildtime dependency is for example _junit_ which is only needed during build time for testing but not at runtime.
+
+A web artifact buildtime dependency is for example _gulp-uglify_ which is only needed during the build process but not by the browser at runtime.
+
 == Combinations
 
 //[cols="^,^,^,^", options="header"]
 |===
 //| Col1 | Col2 | Col 3 | Col 4
 
-.2+| | 3+^| Solution
-|  ^| CDN ^| internal CDN ^| from client app
+.2+| | 3+^| web artifact source
+|  ^| public CDN ^| company CDN ^| application
 
 .2+^.^| Browser | with Internet Access
 ^| X ^| X ^| X
 
-a| NOTE: without Internet Access
-^|   ^| X ^| X
+| without Internet Access
+a|
+* OK for users of internet apps
+* NOK during development
+^| X ^| X
 
 |===
 
@@ -76,7 +138,7 @@ You can simply include a script tag in your html and you're done:
 Price
 
 Your application will be *dependent on an external service*.
-If that one goes down of changes in an unexpected way your application is affected immediately.
+If that one goes down or changes in an unexpected way your application is affected as well.
 
 === B -> WIA -> internal CDN
 
@@ -118,63 +180,26 @@ Benefits
 [.lead]
 Price
 
-You need to think about how the assets can be served from the internal app:
+You need to think about how the assets can be served from the internal app.
+The options are:
+
+* as a *static file* served from your runtime root
+* as *classpath resource* (for JVM based server apps) available at runtime
+
+The following subsections describe the details about these options
+
+==== Static Files
 
 * as file delivered from runtime root
 ** bower
 ** npm
+
+==== Classpath resources
+
 * as classpath resource (for JVM based server apps)
 ** as webjar format (requires servlet api > 3.0 support)
 ** servlet api < 3.0 support: with a resource serving servlet for example which maps URLs to classpath resources
 
-== Solutions
-
-
-Make it available via
-
-* outside app
-** public CDN
-* inside app
-** as file delivered from runtime root
-*** bower
-*** npm
-** as classpath resource (for JVM based server apps)
-*** as webjar format (requires servlet api > 3.0 support)
-*** servlet api < 3.0 support: with a resource serving servlet for example which maps URLs to classpath resources
-
-
-[NOTE]
-====
-[.lead]
-No Internet Access
-
-Some companies have quite restrictive rules in regards to internet access.
-This main reason is security.
-
-Of course it is usuallly not possible today to develop applications without using open source libraries and frameworks available via internet
-these companies usually have dedicated people allowed to do the downloads which will then be made available to somehow inside the company.
-For Java-world artifacts this is usually done via a company internal maven repository like Artifactory or Nexus. If you are lucky
-they are proxies to the internet and you will not notice any difference.
-But if they are not the dedicated person needs to download and import the artifacts. This will become tedious and errorprone especially with transitive dependencies.
-In the Javascript world... TBD
-
-Then we need to distinguish between *runtime* and *buildtime dependencies*.
-A runtime dependency is for example jquery or angularJS which is requested by one of your application's html files from a CDN on the internet.
-A buildtime dependency is for example _gulp-uglify_ which is only during the build process but not by your application at runtime.
-
-
-If you are developing an application for internet users this is not a problem for your future users
-but it is a problem during development and testing.
-In such an enviroment for development and testing assets which are usually available via the internet have to be
-somehow mirrored inside the company. -> artifactory, nexus, ...
-Assets used at runtime on the other hand, for example jquery which is requested from one of your application's html files
-could be served from a CDN on the internet.
-
-For an intranet application in such an environment it means that in addition assets required at runtime (like jquery) needs to be
-fetched from a company internal URL or even served by your application.
-
-* TODO (see ln 68): Your application is *dependent on a third party service* (the CDN) at runtime. If it has a problem your application has a problem as well.
-====
 
 = Start simple
 
@@ -267,10 +292,6 @@ http://stackoverflow.com/questions/18641899/what-is-the-difference-between-bower
 
 In addition the build tools also require DM tools. Gulp for example uses npm to reference certain modules (plugins in gradle speak)
 like https://www.npmjs.com/package/gulp-download[gulp-download] for example.
-
-*Without internet access* you need to provide a place from where you can serve these artifacts.
-This means you need to setup a https://www.npmjs.com/package/private-bower[private bower repository]
-or a https://www.google.ch/webhp?&ie=UTF-8#q=private+npm+repository[private npm repository] or both.
 
 Also the commercial version of Artifactory is able to serve Javascript artifacts: https://www.jfrog.com/confluence/display/RTF/Npm+Repositories.
 
