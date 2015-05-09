@@ -3,5 +3,5 @@ include::vars.adoc[]
 = Sven's Blog
 :Author: Sven Ehrke, @syendar
 
-* link:./first.html[First]
-* link:./2015_04_30_javascript_in_java_webapps.html[{title_2015_04_30_javascript_in_java_webapps}]
+* link:./2015_05_09_bootstrap_webjar_in_springboot_and_grails.html[{title_2015_05_09}}]
+//* link:./2015_04_30_javascript_in_java_webapps.html[{title_2015_04_30_javascript_in_java_webapps}]

@@ -71,12 +71,11 @@ Accessing *web artifacts* from an internet location is not a problem for your fu
 Otherwise it would not be able to access your application.
 But it comes with a certain price (see below)
 
-////
-But it is a problem during development and therefore also these runtime artifacts need to be made available internally.
+//But it is a problem during development and therefore also these runtime artifacts need to be made available internally.
 
-You consider as well that when your application is *dependent on a third party service* (the CDN) at runtime
-any problem with it causes a problem for your application. Depending 
-////
+//You consider as well that when your application is *dependent on a third party service* (the CDN) at runtime
+//any problem with it causes a problem for your application. Depending 
+
 ====
 
 === Build time vs. Run time
@@ -206,7 +205,6 @@ For the client functionality this can be achieved with the following options:
 
 [.lead]
 Benefits
-
 [.lead]
 Price
 
@@ -446,7 +444,6 @@ The server of the client functionality needs to be servlet 3 based.
 Reasons:
 
 * independence from other servers
-
 Options:
 
 * check in 3rd party libs
@@ -458,63 +455,16 @@ Options:
 
 Options with One Projectfolder:
 
-* 
+* Options with separate projectfolders for client and server:
 
 
-Options with separate projectfolders for client and server:
-
-
-=== Runtime
-
-=== Buildtime
-
-----
-// use grunt/gulp/builder for client side development ?
-boolean useClientSideBuildTools = true/false // CSBT
-
-// separate client side builds (e.g. call gulp from commandline)
-// from server side builds (e.g. call gradle from commandline) ?
-boolean separateClientAndServerBuild = true/false
-
-if (we_talk_about_using_a_3rd_party_library) {
-  if (useClientSideBuildTools) {
-    if (separateClientAndServerBuild) {
-      // - call grunt/gulp/builder
-    } else {
-      // - call client side builds from server side builds
-      //   (e.g. call gulp from gradle (see book and my simple JS example))
-      // - .gitignore `node_modules` folder
-  } else {
-    int mode = ...
-    switch(mode) {
-      case 1:
-        // check in 3rd party javascript libs into
-        // client module's project folder and serve from there
-      case 2:
-        // let client module's HTML pages reference 3rd party lib from 
-        // some foreign domain (e.g. some CDN or bintray) and serve from client-domain
-        // TODO: CORS
-      case 3:
-        // if client module implementation is based upon Servlet API 3
-        // use 3rd party lib's webjar and serve from there
-    }
-  }
-} else { // it's about our own lib
-  if (weDevelopAndTestOurLibAtTheSameTime) {
-
-  } else {
-
-  }
-}
-----
-
-
-= stuff
-
-* server-domain == client-domain
-* server-domain != client-domain
+* server-domain same client-domain
+* server-domain not same client-domain
 * serve 3rd party js libs from googleapis: http://ajax.googleapis.com/ajax/libs/angularjs/1.0.3/angular.min.js -> https://developers.google.com/speed/libraries/
-** example: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+** example:
+----
+<xscript src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></scriptx>
+----
 ** served with CORS and Timing-Allow headers
 * bower depends on git
 * mention _Content-Security-Policy._
@@ -527,6 +477,7 @@ Handle e.g. Typescript
 ** at development-runtime through asset-pipeline
 ** at deploy-time through asset-pipeline
 ** Is there a mixed mode option?: asset-pipeline at development time, 3rd party lib at prod-runtime?
+////
+////
 
-
-Changelog: TODO: link to github
+//Changelog: TODO: link to github
