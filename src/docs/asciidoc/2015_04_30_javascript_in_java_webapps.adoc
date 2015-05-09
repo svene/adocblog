@@ -518,6 +518,8 @@ if (we_talk_about_using_a_3rd_party_library) {
 ** served with CORS and Timing-Allow headers
 * bower depends on git
 * mention _Content-Security-Policy._
+* IMPORTANT: /home/sven/zz_play/springboot_webjar: open webjar for bootstrap and note pom.xml with dependency for jquery
+and open bootstrap.js and note errorhandling when jquery is not available
 
 Handle e.g. Typescript
 * some.ts -tsc--> some.js -min--> some-min.js
