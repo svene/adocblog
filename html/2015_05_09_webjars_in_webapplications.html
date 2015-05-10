@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.2">
-<title>Untitled</title>
+<title>Use webjars in your Webapplications</title>
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
 /* Remove the comments around the @import statement below when using this as a custom stylesheet */
@@ -501,17 +501,263 @@ table.CodeRay td.code>pre{padding:0}
 </head>
 <body class="book toc2 toc-left">
 <div id="header">
+<h1>Use webjars in your Webapplications</h1>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
-
+<ul class="sectlevel1">
+<li><a href="#_usage">Usage</a>
+<ul class="sectlevel2">
+<li><a href="#_spring_boot">Spring Boot</a></li>
+<li><a href="#_grails_3">Grails 3</a></li>
+<li><a href="#_grails_2">Grails 2</a></li>
+</ul>
+</li>
+<li><a href="#_background">Background</a>
+<ul class="sectlevel3">
+<li><a href="#_example">Example</a></li>
+<li><a href="#_advantages">Advantages</a></li>
+</ul>
+</li>
+<li><a href="#_conclusion">Conclusion</a></li>
+<li><a href="#additional_notes">Additional Notes</a>
+<ul class="sectlevel2">
+<li><a href="#_modules_manager_for_grails_2">Modules Manager for Grails 2</a></li>
+</ul>
+</li>
+</ul>
 </div>
 </div>
 <div id="content">
-
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>2015-05-10, Sven Ehrke (@syendar)</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s say you want use what I call a web artifact library such as <a href="http://getbootstrap.com/">bootstrap</a> in your Java based webapplication.
+Bootstrap&#8217;s <a href="http://getbootstrap.com/getting-started/#download">Getting started guide</a> describes how you could use it directly from
+the proposed CDN or via tools like <em>bower</em> or <em>npm</em>.</p>
+</div>
+<div class="paragraph">
+<p>In this post I would like to show you another possibility: <strong>webjars</strong>.</p>
+</div>
+<div class="paragraph">
+<p>First I will describe how to use it and then give some background information.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_usage">Usage</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_spring_boot">Spring Boot</h3>
+<div class="paragraph">
+<p>You can find the source for this example on <a href="https://github.com/svene/spring-boot-apps/tree/master/springboot_webjar">Github</a>.</p>
+</div>
+<div class="paragraph">
+<p>To add <em>bootstrap</em> as a webjar to your Spring Boot projects simply add the following dependency to your build file:</p>
+</div>
+<div class="listingblock">
+<div class="title">build.gradle</div>
+<div class="content">
+<pre>dependencies {
+  compile 'org.webjars:bootstrap:3.3.1'
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For maven it would be:</p>
+</div>
+<div class="listingblock">
+<div class="title">pom.xml</div>
+<div class="content">
+<pre>&lt;dependency&gt;
+  &lt;groupId&gt;org.webjars&lt;/groupId&gt;
+  &lt;artifactId&gt;bootstrap&lt;/artifactId&gt;
+  &lt;version&gt;3.3.1&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now when you start your application and point your browser to <code><a href="http://localhost:8080/webjars/bootstrap/3.3.1/css/bootstrap.css" class="bare">http://localhost:8080/webjars/bootstrap/3.3.1/css/bootstrap.css</a></code>
+you should see bootstrap&#8217;s css in the browser. This means that in your html files you can these links to access bootstrap:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;link</span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">stylesheet</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">/webjars/bootstrap/3.3.1/css/bootstrap.min.css</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">/webjars/bootstrap/3.3.1/js/bootstrap.min.js</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_grails_3">Grails 3</h3>
+<div class="paragraph">
+<p>Since Grails 3 is based upon Spring Boot you only need to add the bootstrap webjar dependency to your <code>build.gradle</code>
+as described in the previous section. Everything else also works exactly the same.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_grails_2">Grails 2</h3>
+<div class="paragraph">
+<p>For Grails 2 I could not get it running yet. Anyway here are my attempts so far:</p>
+</div>
+<div class="paragraph">
+<p>Assume you named your grails application <em>grails244_webjar</em> and thus you can access it from <a href="http://localhost:8080/grails244_webjar/" class="bare">http://localhost:8080/grails244_webjar/</a>.</p>
+</div>
+<div class="paragraph">
+<p>When you add the <code>compile 'org.webjars:bootstrap:3.3.1'</code> dependency to your <code>BuildConfig.groovy</code> and then try to access
+<code><a href="http://localhost:8080/grails244_webjar/webjars/bootstrap/3.3.1/css/bootstrap.css" class="bare">http://localhost:8080/grails244_webjar/webjars/bootstrap/3.3.1/css/bootstrap.css</a></code> you will get a HTTP 404.
+<code><a href="http://localhost:8080/webjars/bootstrap/3.3.1/css/bootstrap.css" class="bare">http://localhost:8080/webjars/bootstrap/3.3.1/css/bootstrap.css</a></code> did not work for me either.
+My guess is that it has something to do with the way the <em>GrailsDispatcherServlet</em> is working.</p>
+</div>
+<div class="paragraph">
+<p>(See also <a href="#additional_notes">Additional Notes</a>)</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_background">Background</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A webjar is nothing special.
+The only important thing to know is that since the <strong>Servlet Specification 3.0</strong> all files underneath the path <code>META-INF/resources</code> are treated
+like static resources and can be accessed directly from the browser without having to do anything special.</p>
+</div>
+<div class="sect3">
+<h4 id="_example">Example</h4>
+<div class="paragraph">
+<p>You take a servlet 3.0 compliant container like a modern Tomcat, Jetty, etc.
+Then you create a jar with a file <code>META-INF/resources/hello.txt</code> containing the text <em>hello world</em>.
+Now create a war file and put this jar file into <code>WEB-INF/lib</code>.
+When you start your Tomcat or Jetty and point your browser to <code><a href="http://localhost:8080/readme.txt" class="bare">http://localhost:8080/readme.txt</a></code> it should display the text <em>hello world</em>.</p>
+</div>
+<div class="paragraph">
+<p>The idea behind webjars is to package all files like css, js, images needed by the browser together in a jar file.
+This has the following big advantages:</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_advantages">Advantages</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>You can <strong>leverage maven repositories</strong> e.g. by putting webjars into maven central or bintray as any ordinary jar file</p>
+</li>
+<li>
+<p>You can <strong>leverage</strong> your build tool&#8217;s (gradle, maven) <strong>dependency management</strong> support.</p>
+</li>
+<li>
+<p>You do <strong>not</strong> have to <strong>check in</strong> js or css files anymore and you do not have to copy these files around during at build time</p>
+</li>
+<li>
+<p>Because you can leverage your build tool&#8217;s dependency management support means that you can also define and <strong>use transitive dependencies</strong>
+for your web artifacts</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s take bootstrap again as an example.
+Note that it has a <a href="https://github.com/twbs/bootstrap/blob/master/dist/js/bootstrap.js#L7-L9">transitive dependency to jQuery</a>.
+And if you have a look at the <a href="http://central.maven.org/maven2/org/webjars/bootstrap/3.3.4/bootstrap-3.3.4.pom">pom file of bootstrap&#8217;s webjar</a>
+you can see that it has a dependency declaration on jQuery including the exact version it wants:</p>
+</div>
+<div class="listingblock xml">
+<div class="title">pom.xml (of bootstrap&#8217;s webjar)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code>&lt;dependency&gt;
+  &lt;groupId&gt;org.webjars&lt;/groupId&gt;
+  &lt;artifactId&gt;jquery&lt;/artifactId&gt;
+  &lt;version&gt;1.11.1&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This means you only have to declare the dependency to bootstrap in your maven/gradle file and get the right jQuery webjar for free.</p>
+</div>
+<div class="paragraph">
+<p>If you have a look at <a href="http://www.webjars.org/" class="bare">http://www.webjars.org/</a> you can see that webjars for many popular Javascript/css frameworks/libraries already exist
+and are available via maven central.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_conclusion">Conclusion</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In my opinion using webjars is a great way to use web artifacts like Javascript and css files because it is possible to leverage
+the existing maven dependency management tools and it is not necessary to fiddle around with individual files.</p>
+</div>
+<div class="paragraph">
+<p>Since I discovered webjars they are my preferred way to use web artifacts in Java based projects especially
+since most of the popular frameworks and libraries are already available as webjars.
+And even if you want to provide your own web artifacts as webjar you simply have to stick them in a jar file underneath <code>META-INF/resources</code>
+and you&#8217;re done.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="additional_notes">Additional Notes</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_modules_manager_for_grails_2">Modules Manager for Grails 2</h3>
+<div class="paragraph">
+<p>For Grails 2 <a href="http://www.webjars.org/" class="bare">http://www.webjars.org/</a> suggests to use the <a href="https://github.com/groovydev/modules-manager-grails-plugin"><em>Modules Manager</em> plugin</a>:</p>
+</div>
+<div class="listingblock">
+<div class="title">BuildConfig.groovy</div>
+<div class="content">
+<pre>dependencies {
+   compile 'org.webjars:bootstrap:3.3.1'
+}
+plugins {
+  compile : 'modules-manager:0.2.1'
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then on the commandline you need to invoke <code>grails refresh-modules</code> which will print something like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre> Application cleaned.
+| Created file web-app/modules/bootstrap/webjars-requirejs.js
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.eot
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.woff
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.ttf
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.svg
+| Created file web-app/modules/bootstrap/less/print.less
+| Created file web-app/modules/bootstrap/less/pager.less
+| Created file web-app/modules/bootstrap/less/.csscomb.json
+| Created file web-app/modules/bootstrap/less/scaffolding.less
+| Created file web-app/modules/bootstrap/less/labels.less
+| Created file web-app/modules/bootstrap/less/normalize.less
+| Created file web-app/modules/bootstrap/less/carousel.less
+| Created file web-app/modules/bootstrap/less/popovers.less
+| Created file web-app/modules/bootstrap/less/breadcrumbs.less
+| Created file web-app/modules/bootstrap/less/navs.less
+...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In my case I named the application <em>grails244_webjar</em>. To see the bootstrap css use the following URL:</p>
+</div>
+<div class="paragraph">
+<p><a href="http://localhost:8080/grails244_webjar/modules/bootstrap/css/bootstrap.css" class="bare">http://localhost:8080/grails244_webjar/modules/bootstrap/css/bootstrap.css</a></p>
+</div>
+<div class="paragraph">
+<p>As you can see the web artifacts are copied from the jar file into the <code>web-app/modules</code> folder and need to be accessed from the browser like this.
+With this approach we benefit from the fact that web artifacts are packaged in jar files at build time but not at runtime because the <code>META-INF/resources</code>
+mechanism is not used at all.</p>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2015-05-10 10:20:09 CEST
+Last updated 2015-05-10 10:25:37 CEST
 </div>
 </div>
 </body>

@@ -165,4 +165,4 @@ As you can see the web artifacts are copied from the jar file into the `web-app/
 With this approach we benefit from the fact that web artifacts are packaged in jar files at build time but not at runtime because the `META-INF/resources`
 mechanism is not used at all.
 
-
+//link:index.html[Blog]

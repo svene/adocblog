@@ -3,5 +3,5 @@ include::vars.adoc[]
 = Sven's Blog
 :Author: Sven Ehrke, @syendar
 
-include::2015_05_09_bootstrap_webjar_in_springboot_and_grails.adoc[]
+include::2015_05_09_webjars_in_webapplications.adoc[]
 
