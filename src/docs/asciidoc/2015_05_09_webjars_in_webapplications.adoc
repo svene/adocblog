@@ -2,7 +2,7 @@ include::vars.adoc[]
 
 = {title_2015_05_09}
 
-2015-05-10, Sven Ehrke (@syendar)
+2015-05-09, Sven Ehrke (@syendar)
 
 Let's say you want use what I call a web artifact library such as http://getbootstrap.com/[bootstrap] in your Java based webapplication.
 Bootstrap's http://getbootstrap.com/getting-started/#download[Getting started guide] describes how you could use it directly from
