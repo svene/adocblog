@@ -54,7 +54,7 @@ as described in the previous section. Everything else also works exactly the sam
 
 === Grails 2
 
-For Grails 2 I could not get it running yet. Anyway here are my attempts so far:
+For Grails 2 I could not get it running out of the box using the servlet 3 approach. Anyway here are my attempts so far:
 
 Assume you named your grails application _grails244_webjar_ and thus you can access it from http://localhost:8080/grails244_webjar/.
 
@@ -62,6 +62,29 @@ When you add the `compile 'org.webjars:bootstrap:3.3.1'` dependency to your `Bui
 `http://localhost:8080/grails244_webjar/webjars/bootstrap/3.3.1/css/bootstrap.css` you will get a HTTP 404.
 `http://localhost:8080/webjars/bootstrap/3.3.1/css/bootstrap.css` did not work for me either.
 My guess is that it has something to do with the way the _GrailsDispatcherServlet_ is working.
+
+But: taking the servlet 2.x approach as described http://www.webjars.org/documentation[on this page] works: 
+
+* add the dependency `compile 'org.webjars:webjars-servlet-2.x:1.1'` to your `BuildConfig.groovy`
+
+* Add the WebjarServlet to `web.xml` (first you need to invoke `grails install-templates` to get a web.xml)
+and add the following to it:
+
+[source,xml]
+.src/templates/war/web.xml
+----
+<servlet>
+  <servlet-name>WebjarsServlet</servlet-name>
+  <servlet-class>org.webjars.servlet.WebjarsServlet</servlet-class>
+  <load-on-startup>2</load-on-startup>
+</servlet>
+<servlet-mapping>
+  <servlet-name>WebjarsServlet</servlet-name>
+  <url-pattern>/webjars/*</url-pattern>
+</servlet-mapping>
+----
+
+Then the URL http://localhost:8080/grails244_webjar/webjars/bootstrap/3.3.1/css/bootstrap.min.css works.
 
 (See also <<additional_notes>>)
 
