@@ -1,8 +1,168 @@
+include::vars.adoc[]
 
-[[first]]
-== {title_2015_05_09}}
-2015-04-19
+= {title_2015_05_09}
 
+2015-05-10, Sven Ehrke (@syendar)
 
+Let's say you want use what I call a web artifact library such as http://getbootstrap.com/[bootstrap] in your Java based webapplication.
+Bootstrap's http://getbootstrap.com/getting-started/#download[Getting started guide] describes how you could use it directly from
+the proposed CDN or via tools like _bower_ or _npm_.
+
+In this post I would like to show you another possibility: *webjars*.
+
+First I will describe how to use it and then give some background information.
+
+== Usage
+
+=== Spring Boot
+
+You can find the source for this example on https://github.com/svene/spring-boot-apps/tree/master/springboot_webjar[Github].
+
+To add _bootstrap_ as a webjar to your Spring Boot projects simply add the following dependency to your build file:
+
+.build.gradle
+----
+dependencies {
+  compile 'org.webjars:bootstrap:3.3.1'
+}
+----
+
+For maven it would be:
+
+.pom.xml
+----
+<dependency>
+  <groupId>org.webjars</groupId>
+  <artifactId>bootstrap</artifactId>
+  <version>3.3.1</version>
+</dependency>
+----
+
+Now when you start your application and point your browser to `http://localhost:8080/webjars/bootstrap/3.3.1/css/bootstrap.css`
+you should see bootstrap's css in the browser. This means that in your html files you can these links to access bootstrap:
+
+[source,html]
+----
+<link rel="stylesheet" href="/webjars/bootstrap/3.3.1/css/bootstrap.min.css">
+<script src="/webjars/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+----
+
+=== Grails 3
+
+Since Grails 3 is based upon Spring Boot you only need to add the bootstrap webjar dependency to your `build.gradle`
+as described in the previous section. Everything else also works exactly the same.
+
+=== Grails 2
+
+For Grails 2 I could not get it running yet. Anyway here are my attempts so far:
+
+Assume you named your grails application _grails244_webjar_ and thus you can access it from http://localhost:8080/grails244_webjar/.
+
+When you add the `compile 'org.webjars:bootstrap:3.3.1'` dependency to your `BuildConfig.groovy` and then try to access
+`http://localhost:8080/grails244_webjar/webjars/bootstrap/3.3.1/css/bootstrap.css` you will get a HTTP 404.
+`http://localhost:8080/webjars/bootstrap/3.3.1/css/bootstrap.css` did not work for me either.
+My guess is that it has something to do with the way the _GrailsDispatcherServlet_ is working.
+
+(See also <<additional_notes>>)
+
+== Background
+
+A webjar is nothing special.
+The only important thing to know is that since the *Servlet Specification 3.0* all files underneath the path `META-INF/resources` are treated
+like static resources and can be accessed directly from the browser without having to do anything special.
+
+==== Example
+
+You take a servlet 3.0 compliant container like a modern Tomcat, Jetty, etc.
+Then you create a jar with a file `META-INF/resources/hello.txt` containing the text _hello world_.
+Now create a war file and put this jar file into `WEB-INF/lib`.
+When you start your Tomcat or Jetty and point your browser to `http://localhost:8080/readme.txt` it should display the text _hello world_.
+
+The idea behind webjars is to package all files like css, js, images needed by the browser together in a jar file.
+This has the following big advantages:
+
+==== Advantages
+
+. You can *leverage maven repositories* e.g. by putting webjars into maven central or bintray as any ordinary jar file
+. You can *leverage* your build tool's (gradle, maven) *dependency management* support.
+. You do *not* have to *check in* js or css files anymore and you do not have to copy these files around during at build time
+. Because you can leverage your build tool's dependency management support means that you can also define and *use transitive dependencies*
+for your web artifacts
+
+Let's take bootstrap again as an example.
+Note that it has a https://github.com/twbs/bootstrap/blob/master/dist/js/bootstrap.js#L7-L9[transitive dependency to jQuery].
+And if you have a look at the http://central.maven.org/maven2/org/webjars/bootstrap/3.3.4/bootstrap-3.3.4.pom[pom file of bootstrap's webjar]
+you can see that it has a dependency declaration on jQuery including the exact version it wants:
+
+[source.xml]
+.pom.xml (of bootstrap's webjar)
+----
+<dependency>
+  <groupId>org.webjars</groupId>
+  <artifactId>jquery</artifactId>
+  <version>1.11.1</version>
+</dependency>
+----
+
+This means you only have to declare the dependency to bootstrap in your maven/gradle file and get the right jQuery webjar for free.
+
+If you have a look at http://www.webjars.org/ you can see that webjars for many popular Javascript/css frameworks/libraries already exist
+and are available via maven central.
+
+== Conclusion
+
+In my opinion using webjars is a great way to use web artifacts like Javascript and css files because it is possible to leverage
+the existing maven dependency management tools and it is not necessary to fiddle around with individual files.
+
+Since I discovered webjars they are my preferred way to use web artifacts in Java based projects especially
+since most of the popular frameworks and libraries are already available as webjars.
+And even if you want to provide your own web artifacts as webjar you simply have to stick them in a jar file underneath `META-INF/resources`
+and you're done.
+
+[[additional_notes]]
+== Additional Notes
+
+=== Modules Manager for Grails 2
+
+For Grails 2 http://www.webjars.org/ suggests to use the https://github.com/groovydev/modules-manager-grails-plugin[_Modules Manager_ plugin]:
+
+.BuildConfig.groovy
+----
+dependencies {
+   compile 'org.webjars:bootstrap:3.3.1'
+}
+plugins {
+  compile : 'modules-manager:0.2.1'
+}
+----
+
+Then on the commandline you need to invoke `grails refresh-modules` which will print something like this:
+----
+ Application cleaned.
+| Created file web-app/modules/bootstrap/webjars-requirejs.js
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.eot
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.woff
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.ttf
+| Created file web-app/modules/bootstrap/fonts/glyphicons-halflings-regular.svg
+| Created file web-app/modules/bootstrap/less/print.less
+| Created file web-app/modules/bootstrap/less/pager.less
+| Created file web-app/modules/bootstrap/less/.csscomb.json
+| Created file web-app/modules/bootstrap/less/scaffolding.less
+| Created file web-app/modules/bootstrap/less/labels.less
+| Created file web-app/modules/bootstrap/less/normalize.less
+| Created file web-app/modules/bootstrap/less/carousel.less
+| Created file web-app/modules/bootstrap/less/popovers.less
+| Created file web-app/modules/bootstrap/less/breadcrumbs.less
+| Created file web-app/modules/bootstrap/less/navs.less
+...
+----
+
+In my case I named the application _grails244_webjar_. To see the bootstrap css use the following URL:
+
+http://localhost:8080/grails244_webjar/modules/bootstrap/css/bootstrap.css
+
+As you can see the web artifacts are copied from the jar file into the `web-app/modules` folder and need to be accessed from the browser like this.
+With this approach we benefit from the fact that web artifacts are packaged in jar files at build time but not at runtime because the `META-INF/resources`
+mechanism is not used at all.
 
 
