@@ -5,4 +5,5 @@ include::vars.adoc[]
 :Author: Sven Ehrke, @syendar
 
 * link:./2015_05_09_webjars_in_webapplications.html[{title_2015_05_09}]
+* link:./2015_05_21_grails_jms_time_to_live.html[{title_2015_05_21}]
 //* link:./2015_04_30_javascript_in_java_webapps.html[{title_2015_04_30_javascript_in_java_webapps}]
