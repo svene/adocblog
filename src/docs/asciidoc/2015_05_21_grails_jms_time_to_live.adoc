@@ -4,23 +4,33 @@ include::vars.adoc[]
 
 2015-05-21, Sven Ehrke (@syendar)
 
-In a recent project we had two grails based applications (frontend and backend application)
+== Introduction
+
+In a recent project we had two Grails based applications (frontend and backend application)
 which needed to exchange messages over MQ Series in a request response manner similar to HTTP.
 
 To do this we used the https://grails.org/plugin/jms[Grails JMS Plugin].
 
+== Problem
+
 We got the problem that messages could get stuck in the queue when either the frontend or the backend went down and the *queues got flooded*.
 Even after the applications were available again the messages stayed in the queue because nobody was waiting for them anymore.
+
+== Solution
 
 The solution to this problem is to set a _time to live_ (*TTL*) on the messages.
 We did not find a way to configure this on the queue.
 Instead the TTL has to be set when the message is sent.
 
-*TODO*: The sending part:
+=== Frontend
+
+*TBD*
 
 [source,groovy]
 ----
 ----
+
+=== Backend
 
 The difficult part is finding out how to set the TTL for the returning message (when the backend responds to the frontend's incoming message).
 Because *sending the response is done by the framework* you have to find the place where the _send_ call is invoked.
@@ -125,7 +135,11 @@ jms {
 }
 ----
 
-That's it. I hope this post is useful if you have the same problem in one of your Grails based projects.
+= That's it
+
+I hope this post is useful if you have the same problem in one of your Grails based projects.
+
+Based on Grails 2.4.4
 
 link:index.html[Blog]
 
