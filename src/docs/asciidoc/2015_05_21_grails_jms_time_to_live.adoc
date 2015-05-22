@@ -4,5 +4,129 @@ include::vars.adoc[]
 
 2015-05-21, Sven Ehrke (@syendar)
 
+In a recent project we had two grails based applications (frontend and backend application)
+which needed to exchange messages over MQ Series in a request response manner similar to HTTP.
 
-//link:index.html[Blog]
+To do this we used the https://grails.org/plugin/jms[Grails JMS Plugin].
+
+We got the problem that messages could get stuck in the queue when either the frontend or the backend went down and the *queues got flooded*.
+Even after the applications were available again the messages stayed in the queue because nobody was waiting for them anymore.
+
+The solution to this problem is to set a _time to live_ (*TTL*) on the messages.
+We did not find a way to configure this on the queue.
+Instead the TTL has to be set when the message is sent.
+
+*TODO*: The sending part:
+
+[source,groovy]
+----
+----
+
+The difficult part is finding out how to set the TTL for the returning message (when the backend responds to the frontend's incoming message).
+Because *sending the response is done by the framework* you have to find the place where the _send_ call is invoked.
+After digging around I found the place in Spring's _AbstractAdaptableMessageListener_
+https://github.com/spring-projects/spring-framework/blob/v4.1.6.RELEASE/spring-jms/src/main/java/org/springframework/jms/listener/adapter/AbstractAdaptableMessageListener.java#L367-L376[sendResponse] method:
+
+[source,java]
+----
+protected void sendResponse(Session session, Destination destination, Message response) throws JMSException {
+
+  MessageProducer producer = session.createProducer(destination);
+    try {
+      postProcessProducer(producer, response);
+      producer.send(response);
+    }
+    finally {
+      JmsUtils.closeMessageProducer(producer);
+    }
+}
+----
+
+What we would need to do is to set the TTL on the _producer_ as we have done it in the frontend.
+Since this method is rather small and it's visibility is _protected_ it should be easy to *subclass _AbstractAdaptableMessageListener_*, redefine it and add
+the https://docs.oracle.com/javaee/7/api/javax/jms/MessageProducer.html#setTimeToLive(long)[setting of the TTL].
+
+Having a look at the plugin's code showed that it already uses it's own MessageListenerAdapter:
+https://github.com/gpc/grails-jms/blob/RELEASE_1_2/src/groovy/grails/plugin/jms/bean/JmsListenerAdapterAbstractBeanDefinitionBuilder.groovy#L22[_PersistenceContextAwareListenerAdapter_].
+
+So our custom _MessageListenerAdapter_ needs to extend _PersistenceContextAwareListenerAdapter_ and will look as follows:
+
+[source,groovy]
+.TTLMessageListenerAdapter
+----
+package org.myproject.jms
+
+import javax.jms.Destination;
+import javax.jms.InvalidDestinationException;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+
+class TTLListenerAdapter extends PersistenceContextAwareListenerAdapter {
+
+  @Override
+  protected void sendResponse(Session session, Destination destination, Message response)
+    throws JMSException {
+
+    MessageProducer producer = session.createProducer(destination);
+    try {
+      postProcessProducer(producer, response);
+      producer.setTimeToLive(60000) // <1>
+      producer.send(response);
+    }
+    finally {
+      JmsUtils.closeMessageProducer(producer);
+    }
+  }
+}
+----
+<1> The only line different to the original code, here setting the TTL to 60 seconds 
+
+The last thing to find out is how to tell the plugin to *use _TTLListenerAdapter_*.
+After some debugging I found that it can be configured as follows:
+
+[source,groovy]
+.Config.groovy
+----
+jms {
+  ...
+  adapters {
+    standard {
+      clazz = 'org.myproject.jms.TTLListenerAdapter' // <1>
+      ...
+    }
+    ...
+  }
+}
+
+----
+<1> This line tells the JMS plugin to use _TTLListenerAdapter_ instead of the default _PersistenceContextAwareListenerAdapter_.
+
+If you have configured more than one adapter simply configure the class for each one:
+
+[source,groovy]
+.Config.groovy
+----
+jms {
+  ...
+  adapters {
+    standard {
+      clazz = 'org.myproject.jms.TTLListenerAdapter'
+      ...
+    }
+    other {
+      clazz = 'org.myproject.jms.TTLListenerAdapter'
+      ...
+    }
+    ...
+  }
+}
+----
+
+That's it. I hope this post is useful if you have the same problem in one of your Grails based projects.
+
+link:index.html[Blog]
+
+
