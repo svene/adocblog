@@ -2,3 +2,6 @@
 
 :title_2015_04_30_javascript_in_java_webapps: Javascript in Java Webapplications
 :title_2015_05_09: Use webjars in your Webapplications
+:n1_date: 2015-04-30
+:n2_title: Messages with Time To Live in Grails
+:n2_date: 2015-06-01
