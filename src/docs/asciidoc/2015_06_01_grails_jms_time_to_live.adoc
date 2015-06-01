@@ -1,8 +1,8 @@
 include::vars.adoc[]
 
-= {title_2015_05_21}
+= {n2_title}
 
-2015-05-21, Sven Ehrke (@syendar)
+{n2_date}, Sven Ehrke (@syendar)
 
 == Introduction
 
@@ -13,21 +13,27 @@ To do this we used the https://grails.org/plugin/jms[Grails JMS Plugin].
 
 == Problem
 
-We got the problem that messages could get stuck in the queue when either the frontend or the backend went down and the *queues got flooded*.
+The problem was that messages could get stuck in the queue when either the frontend or the backend went down and the *queues got flooded*.
 Even after the applications were available again the messages stayed in the queue because nobody was waiting for them anymore.
 
 == Solution
 
 The solution to this problem is to set a _time to live_ (*TTL*) on the messages.
 We did not find a way to configure this on the queue.
-Instead the TTL has to be set when the message is sent.
+Instead the _TTL_ has to be set when the message is sent.
 
 === Frontend
 
-*TBD*
+In the frontend, the requesting side, it is easy a _MessageProducer_ to actively to send the message
+is used anyway. So the only thing left to do is to set the _TTL_ on the producer before sending the message:
 
 [source,groovy]
 ----
+MessageProducer producer
+...
+long ttlInMillis = 60000 // 60 seconds
+producer.setTimeToLive(ttlInMillis)
+producer.send(message)
 ----
 
 === Backend
@@ -56,7 +62,7 @@ What we would need to do is to set the TTL on the _producer_ as we have done it 
 Since this method is rather small and it's visibility is _protected_ it should be easy to *subclass _AbstractAdaptableMessageListener_*, redefine it and add
 the https://docs.oracle.com/javaee/7/api/javax/jms/MessageProducer.html#setTimeToLive(long)[setting of the TTL].
 
-Having a look at the plugin's code showed that it already uses it's own MessageListenerAdapter:
+Having a look at the plugin's code showed that it already uses it's own _MessageListenerAdapter_:
 https://github.com/gpc/grails-jms/blob/RELEASE_1_2/src/groovy/grails/plugin/jms/bean/JmsListenerAdapterAbstractBeanDefinitionBuilder.groovy#L22[_PersistenceContextAwareListenerAdapter_].
 
 So our custom _MessageListenerAdapter_ needs to extend _PersistenceContextAwareListenerAdapter_ and will look as follows:
@@ -92,7 +98,7 @@ class TTLListenerAdapter extends PersistenceContextAwareListenerAdapter {
   }
 }
 ----
-<1> The only line different to the original code, here setting the TTL to 60 seconds 
+<1> The only line different to the original code (setting the _TTL_ to 60 seconds)
 
 The last thing to find out is how to tell the plugin to *use _TTLListenerAdapter_*.
 After some debugging I found that it can be configured as follows:
@@ -142,5 +148,4 @@ I hope this post is useful if you have the same problem in one of your Grails ba
 Based on Grails 2.4.4
 
 link:index.html[Blog]
-
 
