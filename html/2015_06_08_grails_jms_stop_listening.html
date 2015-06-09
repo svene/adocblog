@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.2">
-<title>Untitled</title>
+<title>Stop listening to queues in Grails</title>
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
 /* Remove the comments around the @import statement below when using this as a custom stylesheet */
@@ -501,17 +501,152 @@ table.CodeRay td.code>pre{padding:0}
 </head>
 <body class="book toc2 toc-left">
 <div id="header">
+<h1>Stop listening to queues in Grails</h1>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
-
+<ul class="sectlevel1">
+<li><a href="#_introduction">Introduction</a></li>
+<li><a href="#_problem">Problem</a></li>
+<li><a href="#_solution">Solution</a></li>
+<li><a href="#_that_s_it">That&#8217;s it</a></li>
+</ul>
 </div>
 </div>
 <div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>2015-06-08, Sven Ehrke (@syendar)</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_introduction">Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In a recent project we had a grails application listening on a JMS MQ for incoming requests.</p>
+</div>
+<div class="paragraph">
+<p>To do this we used the <a href="https://grails.org/plugin/jms">Grails JMS Plugin</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_problem">Problem</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>During certain times the listening has to be stopped so that no incoming messages would be processed anymore.</p>
+</div>
+<div class="paragraph">
+<p>Unfortunately access to the queue is declared in a declarative manner:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="groovy"><span class="type">class</span> <span class="class">MqListenerService</span> {
+  <span class="annotation">@Queue</span>(name = <span class="string"><span class="delimiter">'</span><span class="content">...</span><span class="delimiter">'</span></span>)
+  <span class="keyword">def</span> <span class="function">getIncomingQueue</span>(message) {
+    ...
+    String response = ...
+    return response
+  }
 
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now the question is how to tell it to stop/start listening.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_solution">Solution</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>With the so called <em>container</em> which is responsible for listening to the queue you can do it.
+The container is accessible via a Spring bean. It&#8217;s name is constructed from the classname containing the <em>@Queue</em> annotations
+(<strong>mqListener</strong> from <em>MqListenerService</em> in this case) and the methodname with the annotation (<strong>GetIncomingQueue</strong> from <em>getIncomingQueue()</em> in this case).
+Therefore the pattern is: <em>&lt;classname&gt;&lt;methodname&gt;_JmsListenerContainer.
+In our case this results to: _mqListenerGetIncomingQueueJmsListenerContainer</em></p>
+</div>
+<div class="paragraph">
+<p>If you are not sure about the name you can always get a list of all Spring bean names like this:</p>
+</div>
+<div class="listingblock">
+<div class="title">SomeController.groovy</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="groovy">GrailsApplication grailsApplication
+
+<span class="annotation">@PostConstruct</span>
+<span class="directive">protected</span> <span class="type">void</span> init() {
+  grailsApplication.mainContext.getBeanDefinitionNames().each { println <span class="string"><span class="delimiter">&quot;</span><span class="content">beanName: </span><span class="inline"><span class="inline-delimiter">$</span><span class="local-variable">it</span></span><span class="delimiter">&quot;</span></span> }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With the name you should be able inject it into a controller and then call <em>stop(), _start()</em> and <em>isRunning()</em> on it:</p>
+</div>
+<div class="listingblock">
+<div class="title">SomeController.groovy</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="groovy">DefaultMessageListenerContainer mqListenerGetIncomingQueueJmsListenerContainer</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In our case we had to do it from an unmanaged class and so we had to get the bean from the Spring Applicationcontext and
+cast it to a <em>DefaultMessageListenerContainer</em> before we could use it:</p>
+</div>
+<div class="listingblock">
+<div class="title">QueueHandler.java</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="type">class</span> <span class="class">QueueHandler</span> {
+  <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">String</span> CONTAINER_NAME = <span class="string"><span class="delimiter">&quot;</span><span class="content">mqListenerGetIncomingQueueJmsListenerContainer</span><span class="delimiter">&quot;</span></span>
+
+  <span class="annotation">@Autowired</span>
+  GrailsApplication grailsApplication;
+
+  <span class="directive">private</span> DefaultMessageListenerContainer myContainer;
+
+  <span class="annotation">@PostConstruct</span>
+  <span class="directive">protected</span> <span class="type">void</span> init() {
+    <span class="keyword">if</span> (grailsApplication.getMainContext().containsBean(CONTAINER_NAME)) {
+      myContainer = (DefaultMessageListenerContainer) grailsApplication.getMainContext()
+        .getBean(CONTAINER_NAME);
+    }
+  }
+
+  <span class="directive">public</span> <span class="type">void</span> stopListener() {
+    myContainer.stop();
+  }
+  <span class="directive">public</span> <span class="type">void</span> startListener() {
+    myContainer.start();
+  }
+  <span class="directive">public</span> <span class="type">boolean</span> isListening() {
+    myContainer.isRunning();
+  }
+
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<h1 id="_that_s_it" class="sect0">That&#8217;s it</h1>
+<div class="openblock partintro">
+<div class="content">
+<div class="paragraph">
+<p>I hope this post is useful if you have the same problem in one of your Grails based projects.</p>
+</div>
+<div class="paragraph">
+<p>Based on Grails 2.4.4</p>
+</div>
+<div class="paragraph">
+<p><a href="index.html">Blog</a></p>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2015-06-08 14:26:20 CEST
+Last updated 2015-06-09 11:47:47 CEST
 </div>
 </div>
 </body>

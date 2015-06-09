@@ -1,0 +1,50 @@
+include::vars.adoc[]
+
+:sectnums:
+
+[[first]]
+== {title_2015_05_26_remove_large_files_from_git}
+2015-05-30
+
+== Problem
+
+Say you accidentally put a large file like a jar into your git repository and published it already to github.
+You could do a `git rm mylargefile` and everything is OK again. Right ? No, it isn't.
+The problem is that the large file is still part of the repository's history and therefore still is part of
+the repository. That means people cloning your repository still get the large file and need to download
+a lot of unnecessary data.
+
+== Example
+
+touch readme second
+
+git add readme
+git commit -m "readme"
+
+Generate a 100MB file:
+
+dd if=/dev/urandom of=largefile.txt bs=1048576 count=100
+
+git add largefile.txt
+git commit -m "largefile"
+
+git add second
+git commit -m "second"
+
+du -sh .
+-> 201M .
+
+git rm largefile.txt
+git commit -m "rm largefile"
+
+du -sh .
+-> 101M .
+
+git gc
+
+du -sh .
+-> 101M .
+
+
+
+== Solution
