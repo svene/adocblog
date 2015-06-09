@@ -1,0 +1,106 @@
+include::vars.adoc[]
+
+= {n3_title}
+
+{n3_date}, Sven Ehrke (@syendar)
+
+== Introduction
+
+In a recent project we had a grails application listening on a JMS MQ for incoming requests.
+
+To do this we used the https://grails.org/plugin/jms[Grails JMS Plugin].
+
+== Problem
+
+During certain times the listening has to be stopped so that no incoming messages would be processed anymore.
+
+Unfortunately access to the queue is declared in a declarative manner:
+
+[source,groovy]
+----
+class MqListenerService {
+  @Queue(name = '...')
+  def getIncomingQueue(message) {
+    ...
+    String response = ...
+    return response
+  }
+  
+}
+----
+ 
+Now the question is how to tell it to stop/start listening.
+
+== Solution
+
+With the so called _container_ which is responsible for listening to the queue you can do it.
+The container is accessible via a Spring bean. It's name is constructed from the classname containing the _@Queue_ annotations
+(*mqListener* from _MqListenerService_ in this case) and the methodname with the annotation (*GetIncomingQueue* from _getIncomingQueue()_ in this case).
+Therefore the pattern is: _<classname><methodname>_JmsListenerContainer.
+In our case this results to: _mqListenerGetIncomingQueueJmsListenerContainer_
+
+If you are not sure about the name you can always get a list of all Spring bean names like this:
+
+[source,groovy]
+.SomeController.groovy
+----
+GrailsApplication grailsApplication
+
+@PostConstruct
+protected void init() {
+  grailsApplication.mainContext.getBeanDefinitionNames().each { println "beanName: $it" }
+}
+----
+
+With the name you should be able inject it into a controller and then call _stop(), _start()_ and _isRunning()_ on it:
+
+[source,groovy]
+.SomeController.groovy
+----
+DefaultMessageListenerContainer mqListenerGetIncomingQueueJmsListenerContainer
+----
+
+In our case we had to do it from an unmanaged class and so we had to get the bean from the Spring Applicationcontext and
+cast it to a _DefaultMessageListenerContainer_ before we could use it:
+
+[source,java]
+.QueueHandler.java
+----
+class QueueHandler {
+  private final String CONTAINER_NAME = "mqListenerGetIncomingQueueJmsListenerContainer"
+
+  @Autowired
+  GrailsApplication grailsApplication;
+
+  private DefaultMessageListenerContainer myContainer;
+
+  @PostConstruct
+  protected void init() {
+    if (grailsApplication.getMainContext().containsBean(CONTAINER_NAME)) {
+      myContainer = (DefaultMessageListenerContainer) grailsApplication.getMainContext()
+        .getBean(CONTAINER_NAME);
+    }
+  }
+
+  public void stopListener() {
+    myContainer.stop();
+  }
+  public void startListener() {
+    myContainer.start();
+  }
+  public boolean isListening() {
+    myContainer.isRunning();
+  }
+
+}
+
+----
+
+= That's it
+
+I hope this post is useful if you have the same problem in one of your Grails based projects.
+
+Based on Grails 2.4.4
+
+link:index.html[Blog]
+
