@@ -1,0 +1,174 @@
+include::vars.adoc[]
+
+= {n4_title}
+
+{n4_date}, Sven Ehrke (@syendar)
+
+== Introduction
+
+In a recent project we had a public webapplication serving internet users and some other webapplications for
+internal people.
+The public webapplication was running at an external service provider.
+The other ones were running internally.
+
+All these webapplications needed to talk to the services of our ServiceApp.
+The internal applications had the ServiceApp embedded and therefore could simply call the services in process.
+
+On the other hand the public application needed to send the service call information via message queue to the ServiceApp.
+Since there was just one message per call it even had to contain the information which service should be called and then
+dispatched inside the ServiceApp.
+
+To ease local development and testing of the public application we decided to use HTTP instead of Message Queues.
+
+.Applications and communication mechanisms
+[ditaa]
+----
+     /---------------\    MQ or HTTP   /------------\
+     | Public Webapp +---------------->| ServiceApp |
+     \---------------/                 \------------/
+
+                                     /-----------------------\
+                                     | Internal Webapps with |
+                                     | embedded ServiceApp   |
+                                     \-----------------------/                           
+----
+
+== Problem
+
+How could the transport mechanism be decoupled from the caller (client)
+such that the details of the transport mechnism do not leak into the client and in addition new transport mechanisms could be added in the future ?
+
+It turned out that our solution to this problem is a nice example for API / SPI separation.
+
+== Solution
+
+We know that we want to support transport via HTTP and also via message queues.
+In the HTTP case the original parameters could be sent as request parameters.
+But in the MQ case all we can send is a message.
+Therefore we decided that servicename and parameters are encoded as JSON string which will satisfy the needs of all transport mechanisms.
+
+But the user should not be bothered with the fact that the transport message needs to be sent as JSON.
+What the user needs to provide is the name of the service to be called and parameters (in the form the user knows).
+
+.Client calls API
+[ditaa]
+----
+     +---------+  execute()   +------------+
+     | Client  +------------->| ServiceAPI |
+     +---------+              +------------+
+----
+
+[source,groovy]
+----
+class Client {
+  ServiceAPI api
+  ...
+  api.execute('myService', myParams)
+}
+----
+
+[source,groovy]
+.API
+----
+interface ServiceAPI {
+  String execute(String serviceName, Parameters parameters)
+}
+----
+
+This way the method _execute_ fits the user's needs.
+
+[NOTE]
+To keep this example simple our services return a _String_.
+
+To call the transport mechanisms an additonal method is needed:
+
+[source,groovy]
+----
+  String send(String jsonString)
+----
+
+This means that an implementation of _ServiceAPI_ needs to create a JSON String from _serviceName_ and _parameters_
+and then call the _send_ method:
+
+[source,groovy]
+----
+class DefaultServiceAPI implements ServiceAPI {
+  String execute(String serviceName, Parameters parameters) {
+    // preparation steps: create a JSON String from serviceName and parameters
+    // call 'send' taking a jsonString
+    // postprocessing: extract meta info like errormessages and payload from returned JSON String
+  }
+}
+----
+
+== SPI
+
+Our _send_ method is a SPI (Service Provider Interface) and _DefaultServiceAPI_ is the glue between the API and the SPI.
+
+[source,groovy]
+.SPI
+----
+interface TransmitterSPI {
+  String send(String jsonString)
+}
+----
+
+For each transport mechanism an implementation for _TransmitterSPI_ is needed:
+
+[source,groovy]
+----
+class HttpTransmitter implements TransmitterSPI {
+  String send(String jsonString) { ... }
+}
+----
+
+[source,groovy]
+----
+class MQTransmitter implements TransmitterSPI {
+  String send(String jsonString) { ... }
+}
+----
+
+[source,groovy]
+----
+class InProcessTransmitter implements TransmitterSPI {
+  String send(String jsonString) { ... }
+}
+----
+
+.final design
+[ditaa]
+----
+     +---------+  execute()    +-------------+
+     | Client  +-------------->|  ServiceAPI |
+     +---------+               +-------------+
+                                      ^
+                                      |
+                            +---------------------+  send()   +------------------+
+                            |  DefaultServiceAPI  |---------->|  TransmitterSPI  |
+                            +---------------------+           +------------------+
+                                                                         ^
+                                                                         |
+                                                       +---------------=-+----------------+
+                                                       |                 |                |
+                                             +-----------------+ +---------------+ +----------------+
+                                             | HttpTransmitter | | MQTransmitter | | XYZTransmitter |
+                                             +-----------------+ +---------------+ +----------------+
+----
+
+[NOTE]
+In situations where a stronger coupling between the client and the transmitter API is acceptable
+the API and the SPI could be merged into a single API taking the JSON string.
+Then the client needs to make sure that it invokes the API with the correct JSON String (probably using a utility method).
+
+
+
+== Conclusion
+
+Separating API and SPI hides the encoding in the glue code and the client does not even know that a JSON string is used.
+The client is decoupled from the needs of the transport mechanism.
+
+
+link:index.html[Blog]
+
+

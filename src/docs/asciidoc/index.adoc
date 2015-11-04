@@ -4,6 +4,7 @@ include::vars.adoc[]
 = Sven's Blog
 :Author: Sven Ehrke, @syendar
 
+* {n4_date} link:./2015_11_01_api_spi_example.html[{n4_title}]
 * {n3_date} link:./2015_06_08_grails_jms_stop_listening.html[{n3_title}]
 * {n2_date} link:./2015_06_01_grails_jms_time_to_live.html[{n2_title}]
 * {n1_date} link:./2015_05_09_webjars_in_webapplications.html[{title_2015_05_09}]
