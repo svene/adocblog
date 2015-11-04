@@ -21,7 +21,7 @@ dispatched inside the ServiceApp.
 To ease local development and testing of the public application we decided to use HTTP instead of Message Queues.
 
 .Applications and communication mechanisms
-[ditaa]
+[ditaa,'20151101_applications']
 ----
      /---------------\    MQ or HTTP   /------------\
      | Public Webapp +---------------->| ServiceApp |
@@ -51,7 +51,7 @@ But the user should not be bothered with the fact that the transport message nee
 What the user needs to provide is the name of the service to be called and parameters (in the form the user knows).
 
 .Client calls API
-[ditaa]
+[ditaa,'20151101_serviceapi']
 ----
      +---------+  execute()   +------------+
      | Client  +------------->| ServiceAPI |
@@ -137,7 +137,7 @@ class InProcessTransmitter implements TransmitterSPI {
 ----
 
 .final design
-[ditaa]
+[ditaa,'20151101_final_design']
 ----
      +---------+  execute()    +-------------+
      | Client  +-------------->|  ServiceAPI |
