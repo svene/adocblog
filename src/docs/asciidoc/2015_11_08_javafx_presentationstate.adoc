@@ -1,0 +1,280 @@
+include::vars.adoc[]
+
+= {n5_title}
+
+{n5_date}, Sven Ehrke (@syendar)
+
+== Introduction
+
+Everytime when I have an idea for a JavaFX application I would like to copy an existing directory structure
+so that I can start quickly and do not waste my energy for the initial plumbing work.
+That's why I created a simple *template folder*.
+
+== Problem
+
+After a while though every time I was starting an application from this template I recognized that it was *too simple*.
+The same problems popped up over and over again and the solutions for them were not provided.
+
+In addition I wanted to be able to *test the GUI* and therefore the template should provide support for them.
+Preferrably the majority of these tests should work *without having to start the GUI* itself.
+
+Therefore I decided to extend my template with solutions to these problems but at the same time
+keep the simplicity of the template.
+
+The template's application is a simple greeting application (Hello world as GUI).
+Here is how it looks like when started:
+
+image::2015_11_08_greet_gui_0.png[]
+
+When you click the _Greet_ button a label with the greeting containing the entered name appears:
+
+image::2015_11_08_greet_gui.png[]
+
+
+
+== The view
+
+For the view I really like to use *FXML* since the development feedback cycle when using SceneBuilder is so small that
+it is much easier for me to create the view.
+
+[source,xml]
+.greet.fxml (View)
+----
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane
+  xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+  fx:controller="org.svenehrke.javafxdemos.greetfxml.GreetController" // <1>
+>
+  <children>
+    <VBox alignment="CENTER_LEFT" ...>
+      <children>
+        <TextField fx:id="nameTextField" />
+        <Button fx:id="greetingButton" mnemonicParsing="false" text="Greet" />
+        <Label fx:id="greetingLabel" text="some text" />
+      </children>
+      <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+      </padding>
+    </VBox>
+  </children>
+</AnchorPane>
+----
+
+When using FXML a so called _Controller_ (1) is used as a companion to the FXML view:
+
+[source,java]
+----
+public class GreetController {
+  @FXML
+  Button greetingButton;
+
+  @FXML
+  TextField nameTextField;
+
+  @FXML
+  Label greetingLabel;
+}
+----
+
+== Typical View Controller Binding
+
+When JavaFX is loading _greet.fxml_ it automatically creates a _GreetController_ instance and makes the view's widgets accessible
+via the annotated _@FXML_ fields.
+
+.FXML to Controller Binding
+[ditaa,'2015_11_08_viewbinding1']
+----
+     +------------------+              +-----------------+
+     | FXML             +              | GreetController |
+     |                  +              |                 |
+     | nameTextField    +------------->| nameTextField   |
+     | greetingButton   +------------->| greetingButton  |
+     | greetingLabel    +------------->| greetingLabel   |
+     +------------------+              +-----------------+
+----
+
+But now most people take *the difficult way* because it seems to be the obvious way.
+
+JavaFX's FXML supports much more like calling an initializing method on the controller and configuring action methods for the
+buttons in the fxml file.
+When you take this approach you will rely more and more on these special FXML features.
+In addition when the controller contains e.g. action handler routines you will recognize that they usually need information
+from the domain model to be able to do something meaningful.
+
+*But how does the controller get access to the domain model?*
+It somehow needs to be given (injected) to the controller from outside.
+Adam Bien created a mini framework called http://afterburner.adam-bien.com/[Afterburner] which can help you with the injection.
+
+My personal opinion is that this is the wrong way and *I prefer a much simpler solution* wich I will use in this example.
+In https://github.com/svene/javafx_demos/tree/master/fxml_stages/fxml_01[one] of my other JavaFX demos I have explained
+the two approaches in more detail. 
+
+== Simple View Controller Binding
+
+This approach decreases coupling, removes a lot of complexity and the need for special injection support.
+The first step is exactly the same as before:
+
+.Viewbinding
+[ditaa,'2015_11_08_viewbinding2']
+----
+     +------+              +-----------------+
+     | FXML +<------------>| GreetController |
+     +------+      ^       +-----------------+
+                   | (1)
+                   |
+             +------------+
+             | FXMLLoader +
+             +------------+
+----
+
+(1) JavaFX loads _greet.fxml, creates a _GreetController_ and binds the loaded widgets to the controller's fields
+
+The trick now is to leave the controller completely stupid and instead bind it's fields to state (JavaFX properties)
+and behavior (action handlers for buttons) with a *Binder*. The state will be encapsulated in a so called _PresentationState_.
+
+[source,java]
+----
+public class PresentationState {
+
+  public final StringProperty name = new SimpleStringProperty();
+  public final StringProperty greeting = new SimpleStringProperty();
+
+  public void initBinding() { // <1>
+  }
+
+  public void initData() { // <2>
+    name.setValue("Duke");
+  }
+}
+----
+
+<1> The purpose of _initBinding()_ is to *bind internal fields* of PresentationState to each other (e.g. greeting automatically changes when name changes).
+This is not used in this example and therefore the routine is empty.
+
+<2> _initData()_ is used to *initialize the presentation state*.
+
+The thing which connects controller and presentation state is what I call _ViewBinder_ or _GUIBinder_.
+
+The order in which _GUIBinder_ calls the individual binding and initialization routines is important.
+
+.GUI Binder
+[ditaa,'2015_11_08_presentationstate']
+----
+     +------+              +-----------------+     +-------------------+
+     | FXML +<------------>| GreetController |<--->| PresentationState |
+     +------+      ^       +-----------------+  ^  +-------------------+
+                   |                            |
+                   | (1)                        | (2), (3), (4), (5)
+                   |                            |
+             +------------+                +-----------+
+             | FXMLLoader +                | GUIBinder +
+             +------------+                +-----------+
+----
+<1> FXML Loader View-Controller binding
+<2> Init presentation state binding
+<3> Bind widgets to presentationstate
+<4> Bind widgets to action handlers
+<5> Populate presentation state with initial data. At this point in time all bindings are already setup which means
+that this initial data will be propagated to the widgets as well
+
+[source,java]
+----
+public class GUIBinder {
+
+  private final GreetController controller;
+  private final PresentationState presentationState;
+
+  public GUIBinder(GreetController controller, PresentationState presentationState) {
+    this.controller = controller;
+    this.presentationState = presentationState;
+  }
+
+  void bindAndInitialize() {
+    presentationState.initBinding(); // <2>
+    initWidgetBinding(); // <3>
+    initActionHandlers(); // <4>
+    presentationState.initData(); // <5>
+  }
+
+  private void initWidgetBinding() {
+    JavaFxWidgetBindings.bindTextField(controller.nameTextField, presentationState.name);
+    JavaFxWidgetBindings.bindLabel(controller.greetingLabel, presentationState.greeting);
+  }
+
+  private void initActionHandlers() {
+    JavaFxWidgetBindings.bindButton(controller.greetingButton, ActionHandlers.greetHandler(presentationState));
+  }
+}
+----
+
+Actions like the _greetHandler_ probably have to access a DB in real applications.
+Unlike the first View Controller Binding approach it is much easier to give the actions access to the required model, services, DBs etc.
+because *this code is completely independend from JavaFX*.
+
+
+== Testing
+
+Using _PresentationState_ which is not dependend on any widget classes has the advantage that testing will become very *easy*.
+With a simple unit test a usage scenario for the GUI can be tested without having to run the real GUI.
+This also means we do not have to employ GUI test libraries like TestFX. Running the tests therefore is very *fast*.
+
+[source,java]
+----
+public class PresentationStateTest {
+
+  private PresentationState presentationState;
+
+  @Before
+  public void init() throws Exception {
+    presentationState = new PresentationState();
+    presentationState.initBinding();
+  }
+
+  @Test
+  public void new_name_changes_greeting() throws Exception {
+
+    // greeting has no value at the beginning:
+    assertEquals(null, presentationState.greeting.getValue());
+
+    // When 'Duke' is entered in TextField:
+    presentationState.name.setValue("Duke");
+    // the greeting is still not set:
+    assertEquals(null, presentationState.greeting.getValue());
+
+    // When the button is pressed:
+    JavaFxWidgetBindings.triggerAction(ActionHandlers.greetHandler(presentationState));
+
+    // the greeting is populated:
+    assertEquals("Hello Duke", presentationState.greeting.getValue());
+  }
+}
+----
+
+The only thing which is not tested is _GUIBinder_.
+But since it's code is only binding widgets to state and action handlers there is not much that can go wrong.
+The widget binding methods in _JavaFxWidgetBindings_ certainly should be tested with a tool such as TestFX.
+But since it is infrastructure code it is not the application's job to test them.
+
+Since you might ask: _PresentationState_ cannot only hold _real_ data but also *meta data* used for the presentation.
+For example it could hold information about validation results, mandatory, enabled or disabled fields etc.
+depending on certain rules. The _PresentationState_ then will contain the result of applying these rules.
+The GUIBinder just has to bind this state to the widgets, e.g. by applying a red border to a TextField.
+
+== Conclusion
+
+For me it turned out to be a nice and simple way to approach JavaFX application development.
+You can find the complete example https://github.com/svene/javafx_demos/tree/master/simple_javafx_fxml[here].
+
+In my http://www.open-dolphin.org/[OpenDolphin] applications I use this approach using presentation models
+to store the presentation state.
+https://github.com/canoo/od_7guis[Here] are some examples. 
+
+
+link:index.html[Blog]
+
+
